@@ -2,17 +2,14 @@ from database import load_database, excel_to_json, search_product
 from telebot.types import Message
 from config import *
 import telebot
+import json
 import time
+import os
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
 database = load_database()
 
-# @bot.message_handler(func=lambda message: True, content_types=['text'])
-# def handle_message(message):
-#     # database = load_database()
-#     response = search_product(message.text, database)
-#     bot.reply_to(message, response)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -28,21 +25,29 @@ def send_welcome(message):
         bot.send_message(message.chat.id, response)
 
 
-# @bot.message_handler(func=lambda message: True, content_types=['text'])
-# def handle_message(message):
-#     # database = load_database()
-#     response = search_product(message.text, database)
-#
-#     if message.chat.type == "group" or message.chat.type == "supergroup":
-#         try:
-#             bot.send_message(message.from_user.id, response)
-#         except:
-#             start_link = f"https://t.me/SafarZadehRobot?start={message.text}"
-#             bot.reply_to(message,
-#                          f"⚠️ لطفاً [اینجا را کلیک کنید]({start_link}) و ربات را استارت کنید تا اطلاعات برای شما ارسال شود.",
-#                          parse_mode="Markdown")
-#     else:
-#         bot.reply_to(message, response)
+@bot.message_handler(func=lambda message: True, content_types=['text'])
+def handle_message(message):
+    if message.chat.type in ["group", "supergroup"] and not get_bot_status():
+        return
+    response = search_product(message.text, database)
+    if message.text == "/toggle":
+        toggle_bot(message)
+
+
+    if not response:
+        return
+
+    if message.chat.type in ["group", "supergroup"]:
+        try:
+            bot.send_message(message.from_user.id, response)  # ارسال پیام در پی‌وی
+        except:
+            start_link = f"https://t.me/YOUR_BOT_USERNAME?start={message.text}"
+            bot.reply_to(message,
+                         f"⚠️ لطفاً [اینجا را کلیک کنید]({start_link}) و ربات را استارت کنید تا اطلاعات برای شما ارسال شود.",
+                         parse_mode="Markdown")
+    else:
+        bot.reply_to(message, response)
+
 
 @bot.message_handler(content_types=['document'])
 def upload_excel(message: Message):
@@ -65,53 +70,46 @@ def upload_excel(message: Message):
         bot.reply_to(message, "❌ خطا در پردازش فایل اکسل.")
 
 
-import json
 
 STATUS_FILE = "status.json"
 
+
 def get_bot_status():
-    """دریافت وضعیت فعال یا غیرفعال بودن ربات"""
+    if not os.path.exists(STATUS_FILE):
+        return True
+
     try:
         with open(STATUS_FILE, "r") as file:
             status = json.load(file)
             return status.get("active", True)
-    except:
+    except json.JSONDecodeError:
         return True
 
-def toggle_bot_status():
-    current_status = get_bot_status()
-    new_status = not current_status
-    with open(STATUS_FILE, "w") as file:
-        json.dump({"active": new_status}, file)
-    return new_status
 
 @bot.message_handler(commands=['toggle'])
 def toggle_bot(message):
-    if message.from_user.id == ADMIN_ID:  # فقط ادمین اجازه تغییر دارد
+    print(f"ADMIN_ID: {ADMIN_ID}, Message From: {message.from_user.id}")  # برای بررسی مقدار ADMIN_ID
+
+    if message.from_user.id == ADMIN_ID:
         new_status = toggle_bot_status()
         status_text = "✅ ربات در گروه‌ها فعال شد!" if new_status else "❌ ربات در گروه‌ها غیرفعال شد!"
         bot.reply_to(message, status_text)
     else:
         bot.reply_to(message, "⛔ شما اجازه این کار را ندارید.")
 
+def toggle_bot_status():
+    current_status = get_bot_status()
+    new_status = not current_status
 
-@bot.message_handler(func=lambda message: True, content_types=['text'])
-def handle_message(message):
-    if message.chat.type in ["group", "supergroup"] and not get_bot_status():
-        return
+    try:
+        with open(STATUS_FILE, "w") as file:
+            json.dump({"active": new_status}, file)
+            print(f"🔄 وضعیت جدید: {new_status}")
+    except Exception as e:
+        print(f"⚠️ خطا در نوشتن فایل status.json: {e}")
+        return current_status
 
-    response = search_product(message.text, database)
-
-    if message.chat.type == "group" or message.chat.type == "supergroup":
-        try:
-            bot.send_message(message.from_user.id, response)  # ارسال پیام در پی‌وی
-        except:
-            start_link = f"https://t.me/YOUR_BOT_USERNAME?start={message.text}"
-            bot.reply_to(message,
-                         f"⚠️ لطفاً [اینجا را کلیک کنید]({start_link}) و ربات را استارت کنید تا اطلاعات برای شما ارسال شود.",
-                         parse_mode="Markdown")
-    else:
-        bot.reply_to(message, response)
+    return new_status
 
 
 while True:

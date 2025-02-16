@@ -33,35 +33,11 @@ def clean_query(query):
     return re.sub(r"[^a-zA-Z0-9آ-ی ]", "", query).strip()
 
 
-
-# def search_product(query, database, max_results=20):
-#     if database is None:
-#         return "⚠️ دیتابیس بارگذاری نشده، لطفاً با ادمین تماس بگیرید."
-#
-#     query = clean_query(query)
-#     query_words = query.split()
-#
-#     results = [
-#         item for item in database
-#         if all(any(word.lower() in str(value).lower() for value in item.values()) for word in query_words)
-#     ]
-#
-#     if not results:
-#         return "❌ محصولی یافت نشد."
-#
-#     results = results[:max_results]
-#
-#     header = "✅ کالای درخواستی شما با مشخصات زیر موجود می‌باشد:\n\n"
-#
-#     response = "\n\n".join(["\n".join([f"{key}: {value}" for key, value in item.items()]) for item in results])
-#
-#     store_info = "\n\n🏪 فروشگاه: صفرزاده\n📞 تلفن‌های تماس:\n📌 02133944061\n📌 02133993282\n📌 02133993283\n📌 02133945943"
-#
-#     return header + response + store_info
-
 def search_product(query, database, max_results=20):
+
+
     if database is None:
-        return "⚠️ دیتابیس بارگذاری نشده، لطفاً با ادمین تماس بگیرید."
+        return None
 
     query = clean_query(query)
     query_words = query.split()
@@ -83,14 +59,15 @@ def search_product(query, database, max_results=20):
             results.append(item)
 
     if not results:
-        return "❌ محصولی یافت نشد."
+        return None
 
     results = results[:max_results]
 
     header = "✅ کالای درخواستی شما با مشخصات زیر موجود می‌باشد:\n"
+
     response = "\n\n".join(["\n".join([f"{key}: {value}" for key, value in item.items()]) for item in results])
 
-    store_info = "\n\n🏪 فروشگاه: صفرزاده\n📞 تلفن‌های تماس:\n📌 021333993282\n📌 021333993283\n📌 021333944061\n📌 021333945943"
+    store_info = "\n\n🏪 فروشگاه: صفرزاده\n📞 تلفن‌های تماس:\n📌 02133944061\n📌 02133993282\n📌 02133993283\n📌 02133945943"
 
     return header + response + store_info
 
